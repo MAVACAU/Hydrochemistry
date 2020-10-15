@@ -1,0 +1,247 @@
+---
+title: "CodigoMapas"
+author: "monica"
+date: "9/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+#Si los mapas  exportados de mapview no quedan envebidos probar  con  la instalacion de github
+#Esto sucede ya que  los paquetes en el cran  fueron actualizdos mal
+Sys.setenv(TZ='GMT')
+remotes::install_github("r-spatial/mapview")
+#install.packages("sf")
+#install.packages("plotly")
+#install.packages("rgdal")
+#install.packages("remotes")
+#install.packages("RColorBrewer")
+```
+
+
+
+
+
+```{r instalar librerias, eval=FALSE, include=FALSE}
+
+```
+
+```{r cargar librerias, include=FALSE}
+library(plotly)
+library(sf)
+library(mapview)
+library(dplyr)
+library(ggplot2)
+library(rgdal)
+library(remotes)
+library(RColorBrewer)
+library(raster)
+library(BAMMtools)
+library(Hmisc)
+```
+
+
+
+
+```{r}
+#for(parametro in PARAMETROS)
+ # {
+  #  DIRECTORIO=paste("./MAPAS/",parametro)
+   # dir.create(DIRECTORIO)
+    #}
+```
+
+
+
+
+
+
+
+
+
+
+```{r include=FALSE}
+
+#geomorfologia<- readOGR("./WGS_84/Geo_Simplif2_Modificado.shp")
+Area <- readOGR("./WGS_84/Area_contractual.shp")
+Geologia <- readOGR("./WGS_84/Geo_Simplif2_Modificado.shp")
+Fallas <- readOGR("./WGS_84/Fallas.shp")
+Data = HQ
+
+imprimibles = read.csv("imprimibles.csv", header = TRUE,sep = ",")
+#
+PARAMETROS<-c("PH","CONDUCTIVIDAD ELECTRICA" ,"TEMPERATURA","SULFATO","BICARBONATO","CLORURO")
+unidades<-c("Unidad de PH","uS/cm","Temp C","Concentracion mg/L","Concentracion mg/L","Concentracion mg/L")
+valores <- data.frame(PARAMETROS,unidades)
+
+imprimibles = read.csv("imprimibles.csv", header = TRUE,sep = ",")
+#PARAMETROS<-unique(Data$MASCARA_PARAMETRO)
+
+DECRETOS<-c("Cons_humano_conv",	"Cons_humano_desi",	"Uso_agricola",	"Uso_pecuario",	"uso_recreativo_prim",	"uso_recreativo_sec",	"flora_fauna_fria",	"flora_fauna_calida",	"flora_fauna_mari")
+#names(Data)[names(Data) == "SinAtipicos"] <- "Concentracion mg/L"
+
+```
+
+
+
+```{r}
+clasificador_jenk<- function(columna) 
+                      {unicos<-data.frame(table(unique(columna)))
+                        resultado=vector()
+                        for (i in columna)
+                          {
+                          asignacion<-match(i,unicos$"Var1")
+                          resultado<-append(resultado,asignacion)
+                          }
+                        return(resultado)
+                        }
+```
+
+
+```{r}
+#datos_limites<-
+
+#PARAMETROS<-unique(datos_limites$MASCARA_PARAMETRO)
+Area <- readOGR("./WGS_84/Area_contractual.shp")
+Geologia <- readOGR("./WGS_84/Geo_Simplif2_Modificado.shp")
+Fallas <- readOGR("./WGS_84/Fallas.shp")
+
+PARAMETROS<-c("CLORURO","PH","SULFATO","HIERRO","NITRITO","NITRATO","SOLIDOS DISUELTOS TOTALES")
+unidades<-c("Concentracion mg/L","Concentracion mg/L","Concentracion mg/L","Concentracion mg/L","Concentracion mg/L","Concentracion mg/L","Concentracion mg/L")
+valores <- data.frame(PARAMETROS,unidades)
+DECRETOS<-c("Cons_humano_conv",	"Cons_humano_desi",	"Uso_agricola",	"Uso_pecuario",	"uso_recreativo_prim",	"uso_recreativo_sec",	"flora_fauna_fria",	"flora_fauna_calida",	"flora_fauna_mari")
+
+imprimibles = read.csv("imprimibles.csv", header = TRUE,sep = ",")
+for(parametro in PARAMETROS)
+  {
+    for(decreto in DECRETOS)
+      {
+        if (imprimibles[imprimibles$PARAMETRO==parametro,decreto]==1) 
+          {
+
+            Data2<-datos_limites
+            nombre<-valores[valores$PARAMETROS==parametro,]$unidades
+            names(Data2)[names(Data2) == "SinAtipicos"] <-nombre
+            dfb =Data2[Data2$MASCARA_PARAMETRO==parametro,]
+            intervalos<- cut(dfb[[nombre]],breaks =   unique(getJenksBreaks(var=dfb[[nombre]],k=6)),
+                             include.lowest =TRUE)
+            valor_intervalo<-clasificador_jenk(intervalos)
+            dfb["intervalos"]<-intervalos
+            #Prueba de concepto para  valores continuos
+            #dfb["Magnitud_mapas"]<-dfb[nombre]/max(dfb[nombre])*0.5+2.5
+            dfb["Magnitud_mapas"]<-valor_intervalo*0.6875+1.5625
+            #Dar formato espacial
+            medidas2 <- st_as_sf(dfb, coords = c("LONG_X", "LAT_Y"),crs=  4326) 
+            MEDIDAS<-medidas2[,c("ID_MUESTRA",
+                                 "ID_PUNTO",
+                                 "sub/sup",
+                                 "Tipo",
+                                 "Ref_mascara",
+                                 "Profundidad_(m)",
+                                 "Prof_asociada",
+                                 "FECHA",
+                                 "VALOR2",
+                                 "UG_Superficial",
+                                 "Edad_Superficial",
+                                 "Norte_Sur_Cimitarra",
+                                 nombre,
+                                 "Magnitud_mapas",
+                                 "intervalos",
+                                 decreto
+                                  )]
+          
+          coloresGeologia<-hcl.colors(length(unique(Geologia$Geologic_2)), 
+                                      palette = "Oslo")
+
+          Mapa =    mapView(Fallas,color = "black",legend = FALSE)+
+                    mapView(Geologia,zcol = "Geologic_2",col.regions=coloresGeologia,
+                            alpha.regions = 0.3, legend = FALSE) +
+                    mapview(MEDIDAS,zcol = decreto,legend = TRUE,
+                            cex =MEDIDAS$"Magnitud_mapas",
+                            layer.name=paste0(parametro,"-",decreto))+
+                    mapView(Area,color = "#C82A54",alpha.regions = 0,
+                            legend = FALSE,lwd=3,viewer.suppress = FALSE) 
+
+            
+            
+          archivo=paste("./MAPAS/",parametro,"_",decreto,".html",sep="")
+          
+          mapshot(Mapa, url = archivo)
+
+          }
+      }
+    }
+```
+
+
+
+
+```{r}
+
+for(parametro in valores$PARAMETROS)
+ {
+  Data2<-Data
+  nombre<-valores[valores$PARAMETROS==parametro,]$unidades
+  names(Data2)[names(Data2) == "SinAtipicos"] <-nombre
+  dfb =Data2[Data2$MASCARA_PARAMETRO==parametro,]
+  intervalos<- cut(dfb[[nombre]],breaks =    unique(getJenksBreaks(var=dfb[[nombre]],k=6)),include.lowest =TRUE)
+  valor_intervalo<-clasificador_jenk(intervalos)
+  dfb["intervalos"]<-intervalos
+  #Prueba de consepto para  valores continuos
+  #dfb["Magnitud_mapas"]<-dfb[nombre]/max(dfb[nombre])*0.5+2.5
+  dfb["Magnitud_mapas"]<-valor_intervalo*0.6875+1.5625
+  #Dar formato espacial
+  medidas2 <- st_as_sf(dfb, coords = c("LONG_X", "LAT_Y"),crs=  4326) 
+  MEDIDAS<-medidas2[,c("ID_MUESTRA",
+                       "ID_PUNTO",
+                       "sub/sup",
+                       "Tipo",
+                       "Ref_mascara",
+                       "Profundidad_(m)",
+                       "Prof_asociada",
+                       "FECHA",
+                       "VALOR2",
+                       "UG_Superficial",
+                       "Edad_Superficial",
+                       "Norte_Sur_Cimitarra",
+                       nombre,
+                       "Magnitud_mapas",
+                       "intervalos"
+                        )]
+ # colores <-hcl.colors(length(unique(geomorfologia$Codigo)), palette = "Purple-Brown")
+  cololres_puntos<-hcl.colors(length(unique(MEDIDAS$nombre)), palette = "plasma")
+  coloresGeologia<-hcl.colors(length(unique(Geologia$Geologic_2)), palette = "Oslo")
+
+  #Definir mapa
+ # mapView(geomorfologia,zcol ="Codigo",col.regions=colores,alpha.regions = 1, 
+       #           legend = FALSE) +
+Mapa =    mapView(Fallas,color = "black",legend = FALSE)+
+          mapView(Geologia,zcol="Geologic_2",
+                  col.regions=coloresGeologia,alpha.regions = 0.3, legend = FALSE) +
+          mapview(MEDIDAS,zcol = "intervalos",legend = TRUE,
+                  cex = MEDIDAS$"Magnitud_mapas",
+                  #La siguiente secccion  es una prueba  de ejecucion para valores continuos
+                  #MEDIDAS,zcol =MEDIDAS[nombre],legend = TRUE,
+                  #cex = MEDIDAS$"Magnitud_mapas",
+                  
+                  layer.name=paste0( parametro,"<br>",nombre),
+                  col.regions=hcl.colors(n=length(unique(dfb$"intervalos")),
+                                        palette = "Zissou 1")
+                  
+                  #La siguiente secccion  es una prueba  de ejecucion para valores continuos
+                  #col.regions=hcl.colors(n=length(unique(dfb$"Magnitud_mapas")),
+                   #                      palette = "Zissou 1")
+                  )+
+  
+            mapView(Area,color = "#C82A54", alpha.regions = 0,
+                  legend = FALSE,lwd=3,viewer.suppress = FALSE) 
+
+            
+          archivo=paste0("./MAPAS/",parametro,".html")
+          mapshot(Mapa, url = archivo)
+}
+```
+
+

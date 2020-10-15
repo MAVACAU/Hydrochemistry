@@ -1,0 +1,46 @@
+Geologic_1	COD_COLOR
+ 	#ffffff
+Algodonal Formation	#e4e169
+Alluvial and alluvial plains deposits	#e0e0e0
+Alluvial fans and colluvial deposits	#f7f7f7
+Alluvial terraces	#cbcbcb
+Arcabuco Formation	#05b7e7
+Arenal Conglomeratic Unit	#aee46f
+Armenia Schists	#b482bb
+Bocas-Jordan-Norean Formation	#90d8e7
+Bucaramanga Gneiss	#ed0fb1
+Cachirí Group	#f6e4b4
+Chiquinquirá Sandstones	#dae5b1
+Chorro Group	#fcc6a1
+Chuspas Group	#fee5b9
+Conglomerate	#f6e4b4
+Cuesta Formation	#fdfad0
+Cumbre Formation	#05b7e7
+Diamante Formation	#ffffff
+Dissected alluvial fans	#959595
+Esmeraldas Formation	#fcc6a1
+Giron Formation	#d6edfd
+Granito	#81caad
+La Cristalina Formation	#03f0c4
+La Luna Formation	#c6de80
+La Paz Formation	#f5f1a2
+La Virgen Metasedimentary Unit	#df9a7d
+Las Brisas Extrusive Unit	#ce1458
+Lisama Formation	#b8da9a
+Mesa Formation	#fef0d8
+Mugrosa Formation	#fedaaa
+Paludal deposits	#899bb2
+Porphyry	#f371d0
+Real Formation	#fef100
+Real Group	#fef100
+Rhyolite	#ccc2de
+Rio Negro Formation	#72cfb2
+San Lucas Gneiss	#ed0fb1
+San Lucas Granitoids	#f05d73
+Seca Formation	#ffffff
+Segovia Batolite	#7f88ed
+Silgara Formation	#03f0c4
+Tablazo Formation	#c3e0a4
+Tambor Formation	#a9d794
+Tapoa Phyllites	#b371b3
+Zambrano Formation	#fff8c8

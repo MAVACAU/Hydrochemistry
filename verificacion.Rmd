@@ -1,0 +1,79 @@
+---
+title: "verificacion"
+author: "monica"
+date: "9/17/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#NOTAS: agregar la columna que falta por analizar  dentro de los parametros
+```{r}
+library(readxl)
+datos<-SECU_Y_MEGIA_query_v1
+#datos <- read_excel("CORRELACION_v4.xlsx")
+limites  <- read_excel("Parametros_limites.xlsx", 
+    sheet = "depurados")
+```
+```{r}
+minimos<-limites[,c(1,2,((1:9)*2)+1)]
+maximos<-limites[,c(1,(1:10)*2)]
+```
+
+
+
+```{r}
+parametros<-unique(limites$PARAMETRO)
+print(parametros)
+```
+```{r}
+parametros2<-unique(datos$MASCARA_PARAMETRO)
+print(parametros2)
+```
+
+```{r}
+for (i in parametros2)
+  {
+  print(paste(i %in% parametros,":",i))
+  }
+
+```
+
+
+
+```{r}
+vermin<-minimos[minimos$PARAMETRO==datos[1,]$MASCARA_PARAMETRO,c(3:11)]<as.numeric(datos[1,]$SinAtipicos)
+vermax<-maximos[maximos$PARAMETRO==datos[1,]$MASCARA_PARAMETRO,c(3:11)]>as.numeric(datos[1,]$SinAtipicos)
+total<-cbind(datos[1,c("ID_MUESTRA","SinAtipicos")],vermin,vermax)
+
+for (i in c(2:nrow(datos)))
+  {
+      if(datos[i,]$MASCARA_PARAMETRO %in% unique(limites$PARAMETRO))
+        {
+        vermin<-minimos[minimos$PARAMETRO==datos[i,]$MASCARA_PARAMETRO,c(3:11)]<as.numeric(datos[i,]$SinAtipicos)
+        vermax<-maximos[maximos$PARAMETRO==datos[i,]$MASCARA_PARAMETRO,c(3:11)]>as.numeric(datos[i,]$SinAtipicos)
+        union<-cbind(datos[i,c("ID_MUESTRA","SinAtipicos")],vermin,vermax)
+        total=rbind(total,union)
+      }
+      else{
+          vermin<-data.frame("min3"="NA","min4"="NA","min5"="NA","min6"="NA","min7"="NA","min8"="NA",
+                             "Min10f"="NA","min10c"="NA","min10m"="NA")
+          vermax<-data.frame("max3"="NA","max4"="NA","max5"="NA","max6"="NA","max7"="NA","max8"="NA",
+                             "Max10f"="NA","max10c"="NA","max10m"="NA")
+  
+          union<-cbind(datos[i,c("ID_MUESTRA","SinAtipicos")],vermin,vermax)
+          total=rbind(total,union)
+         }
+    }
+
+```
+
+```{r}
+write.csv(cbind(datos,total),"SECUNDARIA_CORRELACION_v9_VERIFICADO_V1.csv", row.names = TRUE)
+```
+
+
+
+
