@@ -1,0 +1,58 @@
+---
+title: "CodigoMapas"
+author: "monica"
+date: "9/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r instalar librerias}
+
+```
+
+```{r cargar librerias}
+#library(plotly)
+library(mapview)
+library(dplyr)
+library(ggplot2)
+library(rgdal)
+
+```
+
+```{r cars}
+
+
+setwd("C:/Users/57312/OneDrive - Universidad Nacional de Colombia/R/Hidroquimica")
+
+Area <- readOGR("Area contractual.shp")
+Geologia <- readOGR("C:/Users/57312/OneDrive - Universidad Nacional de Colombia/R/Hidroquimica/shp/Unidades_Geo.shp")
+Fallas <- readOGR("C:/Users/57312/OneDrive - Universidad Nacional de Colombia/R/Hidroquimica/shp/Fallas.shp")
+
+Data = read.csv("MEGIA_Campo.csv", header = TRUE,sep = ",")
+
+Datos = dplyr::filter(Data, MASCARA_PARAMETRO == "GRASAS Y ACEITES")
+
+
+################Colombia mapa
+dfb = as.data.frame(Datos)
+
+dfb$poph <- paste(Datos$MASCARA_PARAMETRO, "Tipo", Datos$Tipo_mascara)
+dfb_project <- st_as_sf(dfb, coords = c("LONG_X", "LAT_Y"), crs=  4326) #dar formato espacial
+
+
+
+Mapa =  mapView(Area,  
+                color = "red",alpha.regions = 0,legend = TRUE,
+                viewer.suppress = FALSE,
+)+
+  mapView(Fallas,color = "black",legend = FALSE)+
+  mapView(Geologia, zcol = "SimboloUC",alpha.regions = 0.3,
+          legend = FALSE) +
+  mapview(dfb_project, zcol = "VALOR2",legend = TRUE,
+          cex = "VALOR2")
+Mapa
+
+mapshot(Mapa, url = paste0(getwd(), "/FIGURAS/GRASAS Y ACEITES.html"))
+```
