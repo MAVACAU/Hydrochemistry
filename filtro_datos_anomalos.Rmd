@@ -1,0 +1,369 @@
+---
+title: "filtrado anomalos"
+author: "MEGIA - MONICA VACA"
+date: "August 23, 2020"
+output: html_document
+---
+#PENDIENTES
+
+#LIB
+```{r}
+library(data.table)
+library(sp)
+library(rgdal)
+require(ggplot2)
+#library(jpeg)
+#library(magick)
+```
+
+#LIMITES
+```{r}
+PARAMETRO_NAME<-c("MAGNESIO","CALCIO","SODIO","POTASIO","BICARBONATO","CLORURO","SULFATO","NITRATO","NITRITO","HIERRO","CONDUCTIVIDAD ELECTRICA","PH","TEMPERATURA","SOLIDOS DISUELTOS TOTALES")
+
+#La identificiación de los límites es el resultado del analsis de diagrama de cajas (Donoban Rojas e Iris Juliana Barreto)
+#lim_inferior<-c(0,0.062,0,0.1,0,0,0.01,0.007,0.003,0.01,1,3.7,16,0)
+#lim_superior<-c(26.3,113.547,84.37,25.6,298,84.37,74.4,29.9,0.3,15.6,4000,10.59,41.3,1568)
+#los limites son ajustados a los resultados obtenidos en campo 1
+
+lim_inferior<-c(0,0.062,0,0.1,0,0,0.01,0.007,0.003,0.01,1,3.7,16,0)
+lim_superior<-c(46,114,252,26,501,145,561,55,1,16,4000,11,42,1570)
+
+limites_HQ<-data.frame(PARAMETRO_NAME,lim_inferior,lim_superior)
+limites_HQ
+
+```
+
+#NAME
+```{r}
+HQ<-(CORRELACION_NORTE_SUR_Vol_VI)
+```
+#ABS Y FILTRADO POR LIMITES
+```{r}
+HQ$SinAtipicos<-abs(HQ$SinAtipicos)
+
+HQ[,"limites_check"]<-0
+for (x in 1:nrow(HQ)){
+  #print(paste(x,"-",HQ[x,"SinAtipicos"],"-",HQ[x,"MASCARA_PARAMETRO"]))
+
+  if((HQ[x,"SinAtipicos"]>=limites_HQ[limites_HQ$PARAMETRO_NAME %in% HQ[x,"MASCARA_PARAMETRO"],"lim_inferior"])&
+     (HQ[x,"SinAtipicos"]<=limites_HQ[limites_HQ$PARAMETRO_NAME %in% HQ[x,"MASCARA_PARAMETRO"],"lim_superior"])){
+    HQ[x,"limites_check"]<-1
+  }
+  
+}
+
+```
+#RESCRIBIR HQ SIN ANOMALO
+```{r}
+HQ<-HQ[HQ$limites_check==1,]
+```
+#DIAGRAMA DE VIOLNES  ... PENDIENTE!
+#DUPLICADOS CHECK
+```{r duplicdos}
+HQ$Amarre<-paste(HQ$ID_MUESTRA,HQ$MASCARA_PARAMETRO)
+DUPLICADOS<-data.frame(table(HQ$Amarre))
+DUPLICADOS_<-DUPLICADOS[DUPLICADOS$Freq>=2,]
+DUPLICADOS_
+
+VER_DUPLICADOS<-HQ[HQ$Amarre %in% DUPLICADOS_$Var1,]
+VER_DUPLICADOS
+write.csv(VER_DUPLICADOS,"VER_DUPLICADOS.csv")
+```
+
+#NUM MUESTRAS
+```{r}
+MUESTRAS<-data.frame(unique(HQ$ID_MUESTRA))
+#MUESTRAS
+```
+
+#VERIFICAR PARAMETROS (IONES Y FISICOQUIMICOS)
+```{r}
+PARAMETRO<-data.frame(table(HQ$MASCARA_PARAMETRO))
+PARAMETRO$DENSIDAD_PORCEN<-PARAMETRO$Freq/nrow(MUESTRAS)*100
+PARAMETRO
+```
+
+#VERIFICAR PARAMETROS (IONES) CON RELACION AL TOTAL "KERNEL PANIC"
+```{r}
+PARAMETRO_ION<-HQ[(HQ$MASCARA_PARAMETRO!="CONDUCTIVIDAD ELECTRICA")&
+                    (HQ$MASCARA_PARAMETRO!="TEMPERATURA")&
+                    (HQ$MASCARA_PARAMETRO!="PH")&
+                    (HQ$MASCARA_PARAMETRO!="SOLIDOS DISUELTOS TOTALES"),]
+PARAMETRO_ION
+
+ION_COUNT<-data.frame(table(PARAMETRO_ION$MASCARA_PARAMETRO))
+ION_COUNT
+
+MUESTRAS_ION<-data.frame(unique(PARAMETRO_ION$ID_MUESTRA))
+ION_COUNT$DENSIDAD_PORCEN<-ION_COUNT$Freq/nrow(MUESTRAS_ION)*100
+ION_COUNT$DENSIDAD_FALTANTES<-100-ION_COUNT$DENSIDAD_PORCEN
+ION_COUNT
+
+```
+
+
+#VERIFICAR MAYORITARIOS 5+1 
+```{r VERIFICAR MAYORITARIOS 5+1}
+IONES_FILTRO<-data.frame(table(PARAMETRO_ION$ID_MUESTRA))
+IONES_FILTRO
+
+IONES_FILTRO_SELECT<-IONES_FILTRO[(IONES_FILTRO$Freq>=6),]
+IONES_FILTRO_SELECT
+
+HQ_IONES<-PARAMETRO_ION[PARAMETRO_ION$ID_MUESTRA %in% IONES_FILTRO_SELECT$Var1,]
+HQ_IONES
+
+HQ_IONES_freq<-data.frame(table(HQ_IONES$MASCARA_PARAMETRO))
+HQ_IONES_freq$DENSIDAD_PORCEN<-(HQ_IONES_freq$Freq/nrow(IONES_FILTRO_SELECT)*100)
+HQ_IONES_freq$DENSIDAD_FALTANTE<-(100-HQ_IONES_freq$DENSIDAD_PORCEN)
+HQ_IONES_freq
+```
+
+#COMPONENTES MATRIZ  
+```{r}
+#filtro para información extraida de entidades diferentes a "Calidad Medidas" 
+HQ_CTE<-HQ_IONES[,c(1:19,27)]
+#HQ_CTE
+#filtro para un unico registro de la inf extraida de entidades diferentes a "Calidad Medidas"
+HQ_CTE_UNIQUE<-unique(HQ_CTE)
+#HQ_CTE_UNIQUE
+#filtro para variables hidroquimicas
+HQ_CAMBIANTE<-HQ_IONES[,c(1,20:26)]
+#HQ_CAMBIANTE
+#MAGNESIO
+HQ_Mg<-HQ_IONES[HQ_IONES$MASCARA_PARAMETRO=="MAGNESIO",c(1,25)]
+#HQ_Mg
+#CALCIO
+HQ_Ca<-HQ_IONES[HQ_IONES$MASCARA_PARAMETRO=="CALCIO",c(1,25)]
+#HQ_Ca
+#SODIO
+HQ_Na<-HQ_IONES[HQ_IONES$MASCARA_PARAMETRO=="SODIO",c(1,25)]
+#HQ_Na
+#POTASIO
+HQ_K<-HQ_IONES[HQ_IONES$MASCARA_PARAMETRO=="POTASIO",c(1,25)]
+#HQ_K
+#BICARBONATO
+HQ_HCOtres<-HQ_IONES[HQ_IONES$MASCARA_PARAMETRO=="BICARBONATO",c(1,25)]
+#HQ_HCOtres
+#CLORURO
+HQ_Cl<-HQ_IONES[HQ_IONES$MASCARA_PARAMETRO=="CLORURO",c(1,25)]
+#HQ_Cl
+#SULFATO
+HQ_SOcuatro<-HQ_IONES[HQ_IONES$MASCARA_PARAMETRO=="SULFATO",c(1,25)]
+#HQ_SOcuatro
+#NITRATO
+HQ_NOtres<-HQ_IONES[HQ_IONES$MASCARA_PARAMETRO=="NITRATO",c(1,25)]
+#HQ_NOtres
+#NITRITO
+HQ_NOdos<-HQ_IONES[HQ_IONES$MASCARA_PARAMETRO=="NITRITO",c(1,25)]
+#HQ_NOdos
+#HIERRO
+HQ_Fe<-HQ_IONES[HQ_IONES$MASCARA_PARAMETRO=="HIERRO",c(1,25)]
+#HQ_Fe
+#pH
+HQ_pH<-HQ[HQ$MASCARA_PARAMETRO=="PH",c(1,25)]
+#HQ_pH
+#Temperatura
+HQ_TEMP<-HQ[HQ$MASCARA_PARAMETRO=="TEMPERATURA",c(1,25)]
+#HQ_TEMP
+#Conductictividad Eléctrica
+HQ_CE<-HQ[HQ$MASCARA_PARAMETRO=="CONDUCTIVIDAD ELECTRICA",c(1,25)]
+#HQ_CE
+#Solidos Disueltos Totales
+HQ_SDT<-HQ[HQ$MASCARA_PARAMETRO=="SOLIDOS DISUELTOS TOTALES",c(1,25)]
+#HQ_SDT
+#Información adicional
+HQ_complemento<-HQ[,c("ID_MUESTRA","UG_Superficial","Edad_Superficial","Norte_Sur_Cimitarra")]
+
+```
+#TRASH
+```{r}
+#colnames(HQ_MG)
+#FIND<-HQ[HQ$ID_MUESTRA=="M-33013",]
+
+#sacar nuevos anomalosMAX
+#MAXIMOS
+#CAMPO_MEGIA<-HQ[HQ$Ref_mascara=="CAMPO MEGIA",]
+
+
+#MEGIA_MAX_HCO3<-apply(CAMPO_MEGIA[CAMPO_MEGIA$MASCARA_PARAMETRO=="BICARBONATO",], 2, max, na.rm=TRUE)
+#MEGIA_MAX_HCO3
+```
+
+
+
+#NOMBRE  ...> CORRERLO UNA SOLA VEZ!!!
+```{r include=FALSE}
+colnames(HQ_Mg)<-paste("Mg",colnames(HQ_Mg))
+colnames(HQ_Mg)[1]<-"ID_MUESTRA"
+colnames(HQ_Ca)<-paste("Ca",colnames(HQ_Ca))
+colnames(HQ_Ca)[1]<-"ID_MUESTRA"
+colnames(HQ_Na)<-paste("Na",colnames(HQ_Na))
+colnames(HQ_Na)[1]<-"ID_MUESTRA"
+colnames(HQ_K)<-paste("K",colnames(HQ_K))
+colnames(HQ_K)[1]<-"ID_MUESTRA"
+colnames(HQ_HCOtres)<-paste("HCO3",colnames(HQ_HCOtres))
+colnames(HQ_HCOtres)[1]<-"ID_MUESTRA"
+colnames(HQ_Cl)<-paste("Cl",colnames(HQ_Cl))
+colnames(HQ_Cl)[1]<-"ID_MUESTRA"
+colnames(HQ_SOcuatro)<-paste("SO4",colnames(HQ_SOcuatro))
+colnames(HQ_SOcuatro)[1]<-"ID_MUESTRA"
+colnames(HQ_NOtres)<-paste("NO3",colnames(HQ_NOtres))
+colnames(HQ_NOtres)[1]<-"ID_MUESTRA"
+colnames(HQ_NOdos)<-paste("NO2",colnames(HQ_NOdos))
+colnames(HQ_NOdos)[1]<-"ID_MUESTRA"
+colnames(HQ_Fe)<-paste("Fe",colnames(HQ_Fe))
+colnames(HQ_Fe)[1]<-"ID_MUESTRA"
+##
+colnames(HQ_pH)<-paste("pH",colnames(HQ_pH))
+colnames(HQ_pH)[1]<-"ID_MUESTRA"
+colnames(HQ_TEMP)<-paste("TEMP",colnames(HQ_TEMP))
+colnames(HQ_TEMP)[1]<-"ID_MUESTRA"
+colnames(HQ_CE)<-paste("COND_ELE",colnames(HQ_CE))
+colnames(HQ_CE)[1]<-"ID_MUESTRA"
+colnames(HQ_SDT)<-paste("SDT",colnames(HQ_SDT))
+colnames(HQ_SDT)[1]<-"ID_MUESTRA"
+
+```
+
+
+
+
+
+
+#MATRIZ
+```{r}
+MATRIZ<-merge(x=HQ_CTE_UNIQUE, y=HQ_Mg, by="ID_MUESTRA", all=TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_Ca, by="ID_MUESTRA", all=TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_Na, by="ID_MUESTRA", all=TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_K, by="ID_MUESTRA", all=TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_HCOtres, by="ID_MUESTRA", all=TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_Cl, by="ID_MUESTRA", all=TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_SOcuatro, by="ID_MUESTRA", all=TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_NOtres, by="ID_MUESTRA", all=TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_NOdos, by="ID_MUESTRA", all=TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_Fe, by="ID_MUESTRA", all=TRUE)
+###
+MATRIZ<-merge(x=MATRIZ, y=HQ_pH, by="ID_MUESTRA", all.x =TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_TEMP, by="ID_MUESTRA", all.x =TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_CE, by="ID_MUESTRA", all.x =TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_SDT, by="ID_MUESTRA", all.x = TRUE)
+MATRIZ<-merge(x=MATRIZ, y=HQ_complemento, by="ID_MUESTRA", all.x = TRUE)
+```
+
+#MEQ/L
+```{r meq}
+MEQ<-MATRIZ
+MEQ$`Mg SinAtipicos`<-(MEQ$`Mg SinAtipicos`/24.3)*2
+MEQ$`Ca SinAtipicos`<-(MEQ$`Ca SinAtipicos`/40)*2
+MEQ$`Na SinAtipicos`<-(MEQ$`Na SinAtipicos`/23)*1
+MEQ$`K SinAtipicos`<-(MEQ$`K SinAtipicos`/39)*1
+MEQ$`HCO3 SinAtipicos` <-(MEQ$`HCO3 SinAtipicos`/61)*1
+MEQ$`Cl SinAtipicos` <-(MEQ$`Cl SinAtipicos`/35.5)*2
+MEQ$`SO4 SinAtipicos` <-(MEQ$`SO4 SinAtipicos`/96)*2
+MEQ$`NO3 SinAtipicos` <-(MEQ$`NO3 SinAtipicos`/62)*1
+MEQ$`NO2 SinAtipicos` <-(MEQ$`NO2 SinAtipicos`/62)*1
+MEQ$`Fe SinAtipicos` <-(MEQ$`Fe SinAtipicos`/55.847)*2
+#MEQ
+```
+#CATIONES Y ANIONES
+```{r}
+#PROBLEMA DE NA
+
+MEQ$CATION<-rowSums(MEQ[,c("Mg SinAtipicos","Ca SinAtipicos","Na SinAtipicos","K SinAtipicos")], na.rm = TRUE)
+
+MEQ$ANION<-rowSums(MEQ[,c("HCO3 SinAtipicos","Cl SinAtipicos","SO4 SinAtipicos","NO3 SinAtipicos","NO2 SinAtipicos","Fe SinAtipicos")],na.rm = TRUE)
+
+```
+
+#BALACE
+```{r}
+MEQ$BE<-((MEQ$CATION-MEQ$ANION)/(MEQ$CATION+MEQ$ANION))*100
+MEQ$BE_ABS<-abs(MEQ$BE)
+
+#balance 20%
+MEQ_20<-MEQ[MEQ$BE_ABS<=20,]
+
+#mejor incluir todo para incorporar CAMPO MEGIA
+MEQ_20<-MEQ
+```
+
+
+#NUEVA SELECCIÓN 3+1
+```{r}
+MEQ_20$CountNA<-rowSums(is.na(MEQ_20[,c("Mg SinAtipicos","Ca SinAtipicos","Na SinAtipicos","K SinAtipicos","HCO3 SinAtipicos","Cl SinAtipicos","SO4 SinAtipicos")]))
+
+MEQ_20_MAY<-MEQ_20[MEQ_20$CountNA<=3,]
+                        
+```
+
+#LLENADO DE DATOS
+```{r}
+#LAS CELDAS VACIAS SE DEBEN LLENAR CON LA MITAD DEL LÍMITE DETECTABLE
+#EN ESTE CASO EL VALOR MÍNIMO
+MIN_MAY<-apply(MEQ_20_MAY[,c("Mg SinAtipicos","Ca SinAtipicos","Na SinAtipicos","K SinAtipicos","HCO3 SinAtipicos","Cl SinAtipicos","SO4 SinAtipicos")], 2, min, na.rm=TRUE)
+#MIN_MAY
+
+name_min<-c("Mg min","Ca min","Na min","K min","HCO3 min","Cl min","SO4 min")
+
+MINVALUE<-c(0.004115226,0.005000000, 0.004347826,0.002564103,0.016393443,0.002816901,0.001250000)
+
+MIN_MAY_<-data.frame(name_min, MINVALUE)
+#MIN_MAY_
+
+MEQ_20_MAY[is.na(MEQ_20_MAY$`Mg SinAtipicos`),"Mg SinAtipicos"]<-MIN_MAY_[MIN_MAY_$name_min=="Mg min","MINVALUE"]
+MEQ_20_MAY[is.na(MEQ_20_MAY$`Ca SinAtipicos`),"Ca SinAtipicos"]<-MIN_MAY_[MIN_MAY_$name_min=="Ca min","MINVALUE"]
+MEQ_20_MAY[is.na(MEQ_20_MAY$`Na SinAtipicos`),"Na SinAtipicos"]<-MIN_MAY_[MIN_MAY_$name_min=="Na min","MINVALUE"]
+MEQ_20_MAY[is.na(MEQ_20_MAY$`K SinAtipicos`),"K SinAtipicos"]<-MIN_MAY_[MIN_MAY_$name_min=="K min","MINVALUE"]
+MEQ_20_MAY[is.na(MEQ_20_MAY$`HCO3 SinAtipicos`),"HCO3 SinAtipicos"]<-MIN_MAY_[MIN_MAY_$name_min=="HCO3 min","MINVALUE"]
+MEQ_20_MAY[is.na(MEQ_20_MAY$`Cl SinAtipicos`),"Cl SinAtipicos"]<-MIN_MAY_[MIN_MAY_$name_min=="Cl min","MINVALUE"]
+MEQ_20_MAY[is.na(MEQ_20_MAY$`SO4 SinAtipicos`),"SO4 SinAtipicos"]<-MIN_MAY_[MIN_MAY_$name_min=="SO4 min","MINVALUE"]
+
+#MIN_MAY_BORRAR<-apply(MEQ_20_MAY[,c("Mg SinAtipicos","Ca SinAtipicos","Na SinAtipicos","K SinAtipicos","HCO3 SinAtipicos","Cl SinAtipicos","SO4 SinAtipicos")], 2, min, na.rm=FALSE)
+#MIN_MAY_BORRAR
+```
+
+#PARAMETROS ADICIONALES - SIN TERMINAR
+#ELIMINAR DUPLICADOS
+```{r}
+MEQ_20_MAY<-unique(MEQ_20_MAY)
+```
+
+
+#EXPORTAR ARCHIVO
+```{r}
+write.csv(MEQ_20_MAY,"MEQ_20_MAY_v5.csv")
+write.csv(MEQ,"MEQ_v3.csv")
+#write.csv(CAMPO_MEGIA,"CAMPO_MEGIA_v1.csv")
+
+```
+
+
+```{r}
+#pH
+HQ_pH<-HQ[HQ$MASCARA_PARAMETRO=="PH",c(1,25)]
+HQ_pH
+#Temperatura
+HQ_TEMP<-HQ[HQ$MASCARA_PARAMETRO=="TEMPERATURA",c(1,25)]
+HQ_TEMP
+#Conductictividad Eléctrica
+HQ_CE<-HQ[HQ$MASCARA_PARAMETRO=="CONDUCTIVIDAD ELECTRICA",c(1,25)]
+HQ_CE
+#Solidos Disueltos Totales
+HQ_SDT<-HQ[HQ$MASCARA_PARAMETRO=="SOLIDOS DISUELTOS TOTALES",c(1,25)]
+HQ_SDT
+
+##
+colnames(HQ_pH)<-paste("pH",colnames(HQ_pH))
+colnames(HQ_pH)[1]<-"ID_MUESTRA"
+colnames(HQ_TEMP)<-paste("TEMP",colnames(HQ_TEMP))
+colnames(HQ_TEMP)[1]<-"ID_MUESTRA"
+colnames(HQ_CE)<-paste("COND_ELE",colnames(HQ_CE))
+colnames(HQ_CE)[1]<-"ID_MUESTRA"
+colnames(HQ_SDT)<-paste("SDT",colnames(HQ_SDT))
+colnames(HQ_SDT)[1]<-"ID_MUESTRA"
+```
+
+
+
+
