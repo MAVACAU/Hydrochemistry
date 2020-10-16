@@ -20,14 +20,6 @@ remotes::install_github("r-spatial/mapview")
 #install.packages("RColorBrewer")
 ```
 
-
-
-
-
-```{r instalar librerias, eval=FALSE, include=FALSE}
-
-```
-
 ```{r cargar librerias, include=FALSE}
 library(plotly)
 library(sf)
@@ -42,9 +34,6 @@ library(BAMMtools)
 library(Hmisc)
 ```
 
-
-
-
 ```{r}
 #for(parametro in PARAMETROS)
  # {
@@ -53,20 +42,11 @@ library(Hmisc)
     #}
 ```
 
-
-
-
-
-
-
-
-
-
 ```{r include=FALSE}
 
 #geomorfologia<- readOGR("./WGS_84/Geo_Simplif2_Modificado.shp")
 Area <- readOGR("./WGS_84/Area_contractual.shp")
-Geologia <- readOGR("./WGS_84/Geo_Simplif2_Modificado.shp")
+Geologia <- readOGR("./WGS_84/Geologia_Octubre_2020.shp")
 Fallas <- readOGR("./WGS_84/Fallas.shp")
 Data = HQ
 
@@ -84,8 +64,6 @@ DECRETOS<-c("Cons_humano_conv",	"Cons_humano_desi",	"Uso_agricola",	"Uso_pecuari
 
 ```
 
-
-
 ```{r}
 clasificador_jenk<- function(columna) 
                       {unicos<-data.frame(table(unique(columna)))
@@ -98,7 +76,6 @@ clasificador_jenk<- function(columna)
                         return(resultado)
                         }
 ```
-
 
 ```{r}
 #datos_limites<-
@@ -175,9 +152,6 @@ for(parametro in PARAMETROS)
     }
 ```
 
-
-
-
 ```{r}
 
 for(parametro in valores$PARAMETROS)
@@ -243,5 +217,3 @@ Mapa =    mapView(Fallas,color = "black",legend = FALSE)+
           mapshot(Mapa, url = archivo)
 }
 ```
-
-

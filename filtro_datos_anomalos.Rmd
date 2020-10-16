@@ -1,0 +1,59 @@
+---
+title: "filtrado anomalos"
+author: "MEGIA - MONICA VACA"
+date: "August 23, 2020"
+output: html_document
+---
+#PENDIENTES
+
+#LIB
+```{r}
+library(data.table)
+library(sp)
+library(rgdal)
+require(ggplot2)
+#library(jpeg)
+#library(magick)
+```
+
+#LIMITES
+```{r}
+PARAMETRO_NAME <- c("MAGNESIO","CALCIO","SODIO","POTASIO","BICARBONATO","CLORURO","SULFATO","NITRATO","NITRITO","HIERRO","CONDUCTIVIDAD ELECTRICA","PH","TEMPERATURA","SOLIDOS DISUELTOS TOTALES")
+
+#La identificiación de los límites es el resultado del analsis de diagrama de cajas (Donoban Rojas e Iris Juliana Barreto)
+#lim_inferior <- c(0,0.062,0,0.1,0,0,0.01,0.007,0.003,0.01,1,3.7,16,0)
+#lim_superior <- c(26.3,113.547,84.37,25.6,298,84.37,74.4,29.9,0.3,15.6,4000,10.59,41.3,1568)
+#los limites son ajustados a los resultados obtenidos en campo 1
+
+lim_inferior <- c(0,0.062,0,0.1,0,0,0.01,0.007,0.003,0.01,1,3.7,16,0)
+lim_superior <- c(46,114,252,26,501,145,561,55,1,16,4000,11,42,1570)
+
+limites_HQ <- data.frame(PARAMETRO_NAME,lim_inferior,lim_superior)
+limites_HQ
+
+```
+
+#NAME
+```{r}
+HQ <- (CORRELACION_NORTE_SUR_Vol_VI)
+```
+#ABS Y FILTRADO POR LIMITES
+```{r}
+HQ$SinAtipicos <- abs(HQ$SinAtipicos)
+
+HQ[,"limites_check"] <- 0
+for (x in 1:nrow(HQ)){
+  #print(paste(x,"-",HQ[x,"SinAtipicos"],"-",HQ[x,"MASCARA_PARAMETRO"]))
+
+  if((HQ[x,"SinAtipicos"]>=limites_HQ[limites_HQ$PARAMETRO_NAME %in% HQ[x,"MASCARA_PARAMETRO"],"lim_inferior"])&
+     (HQ[x,"SinAtipicos"]<=limites_HQ[limites_HQ$PARAMETRO_NAME %in% HQ[x,"MASCARA_PARAMETRO"],"lim_superior"])){
+    HQ[x,"limites_check"] <- 1
+  }
+  
+}
+
+```
+#RESCRIBIR HQ SIN ANOMALO
+```{r}
+HQ <- HQ[HQ$limites_check==1,]
+```
