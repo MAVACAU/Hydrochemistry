@@ -1,18 +1,11 @@
 ---
-title: "Stiff Mapeado"
-author: "MAVU"
-date: "27/7/2020"
+title: "Filtrado anomalos"
+author: "MEGIA (HIDROGEOLOGIA, ING) - MAVU"
+date: "August 23, 2020"
 output: html_document
 ---
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-```{r}
-install.packages("rgdal")
-```
-
 #LIB
-```{r include=FALSE}
+```{r}
 library(data.table)
 library(sp)
 library(rgdal)
@@ -20,161 +13,127 @@ require(ggplot2)
 #library(jpeg)
 #library(magick)
 ```
-#READ FILE
+
+#NAME
 ```{r}
-#library(readxl)
-#iones<-read_excel("C:/Users/Family/Documents/MEGIA/R/Stiff/CORRELACION_NORTE_SUR_Vol_iv.xlsx", 
-    #sheet = "datos", col_types = c("text", 
-     #   "numeric", "numeric", "numeric", 
-     #  "numeric", "text", "numeric", "numeric", 
-     #   "numeric", "numeric", "numeric", 
-#        "numeric", "numeric", "numeric", 
-#        "numeric", "numeric", "numeric", 
-#        "numeric", "numeric", "numeric", 
-#        "numeric", "numeric", "numeric", 
-#        "numeric", "text", "text", "text", 
-#        "text"))
-iones<-(MEQ_20_MAY)
+HQ <- (SECU_Y_MEGIA_iones_v2_cluster)
+#HQ <- (SECU_Y_MEGIA_query_v2_utf8)
+```
+#VIOLIN PLOT-LY ... sin exportar :'(
+```{r}
+Parametros<-data.frame(unique(HQ$MASCARA_PARAMETRO))
+Parametros
+df=HQ[HQ$MASCARA_PARAMETRO=="BICARBONATO",]
+fig <- df %>%
+  plot_ly(
+    y = ~SinAtipicos,
+    type = 'violin',
+    box = list(
+      visible = T
+    ),
+    meanline = list(
+      visible = T
+    ),
+    x0 = 'Valores'
+  ) 
+
+fig <- fig %>%
+  layout(
+    yaxis = list(
+      title = "",
+      zeroline = F
+    )
+  )
+fig
+#orca(fig, "violin.svg")
+
 
 ```
 
-
-#LOAD SHAPES
+#VIOLIN GGPLOT 
 ```{r}
-#sp1 <- readOGR(dsn = file.path("/WGS_84", "Fallas.shp"), stringsAsFactors = F)
-sp2 <- readOGR(dsn = file.path("./WGS_84", 
-                                "Bloques.shp"), stringsAsFactors = F)
-sp3 <- readOGR(dsn = file.path("./WGS_84",
-                                "Drenaje_linea.shp"), stringsAsFactors = F)
-sp4 <- readOGR(dsn = file.path("./WGS_84",
-                                "Drenaje_poligono.shp"), stringsAsFactors = F)
-sp5 <- readOGR(dsn = file.path("./WGS_84",
-                                "Unidades_Geo.shp"), stringsAsFactors = F)
-sp6 <- readOGR(dsn = file.path("./WGS_84",
-                                "Area_contractual.shp"), stringsAsFactors = F)
-```
-
-#STYLE SHAPES
-```{r}
-  #geom_polygon(data = shp5, aes(x = long, y = lat, group = group), colour = "black", fill = NA)+
-
-```
-#DIAGRAMA DE STIFF
-```{r}
-diagrama_stiff<-function(iones,ho,ve,shp1,shp2,shp3,shp4,shp5,shp6)
-  {
-        map1 <- ggplot()+
-        geom_polygon(data = shp4, aes(x = long, y = lat, group = group), colour = "#a1bad8", fill = "#a1bad8")+
-        geom_path(data = shp3, aes(x = long, y = lat, group = group), colour = "#a1bad8", fill = NA)+
-        geom_polygon(data = shp2, aes(x = long, y = lat, group = group), colour = "#cccccc", fill = NA)+
-        geom_polygon(data = shp6, aes(x = long, y = lat, group = group), colour = "#666666", fill = NA)+theme_bw()
-        
-   
-        
-        
-        
-        for(n in 1:nrow(iones))
-          {
-          iones_long<-as.numeric(iones$LONG_X[n])
-          iones_lat<-as.numeric(iones$LAT_Y[n])
-            position<- data.frame(
-                  xp = c(
-                        iones_long-iones$"Mg SinAtipicos"[n]*ho,
-                        iones_long+(iones$"SO4 SinAtipicos"[n]+iones$"NO3 SinAtipicos"[n])*ho,
-                        iones_long+iones$"HCO3 SinAtipicos"[n]*ho,
-                        iones_long+iones$"Cl SinAtipicos"[n]*ho,
-                        iones_long-(iones$"Na SinAtipicos"[n]+iones$"K SinAtipicos"[n])*ho,
-                        iones_long-iones$"Ca SinAtipicos"[n]*ho),
-                  yp = c(iones_lat-ve, 
-                        iones_lat-ve, 
-                        iones_lat, 
-                        iones_lat+ve, 
-                        iones_lat+ve, 
-                        iones_lat))
-
-           map1<-map1+geom_polygon(data = position ,
-                                    aes(x = xp, y = yp,alpha=0.8),
-                                    size=0.0001,
-                                    colour= "#018571",
-                                    fill= "white")
-
-        }
-        
-        
-        
-        lineas <- data.frame(x1 = as.numeric(iones$LONG_X), x2 = as.numeric(iones$LONG_X), y1 = as.numeric(iones$LAT_Y)-ve, y2 = as.numeric(iones$LAT_Y)+ve)
-        map1<-map1+geom_segment(aes(x = x1, y = y1, xend = x2, yend = y2),size=0.0001, color = "#b8b8b8", data = lineas)  
-        
-        
-        map1
-        return(map1) 
+Parametros<-unique(HQ$MASCARA_PARAMETRO)
+# Make plots. Para evitar que se sobreescriban los gráficos es necesario crear una lista
+plot_list = list()
+for (i in c(1:length(Parametros))) {
+    data = HQ[HQ$MASCARA_PARAMETRO==Parametros[i],]
+    GRAPH = ggplot(data, aes(x=MASCARA_PARAMETRO, y=SinAtipicos)) + geom_violin()
+    plot_list[[i]] = GRAPH
+}
+# Save plots to tiff. Makes a separate file for each plot.
+for (i in c(1:length(Parametros))) {
+    file_name = paste0("d:/mavacau/Documents/Hojas/Hidroquimica/Valores/FILTRADO/",Parametros[i],".pdf")
+    pdf(file_name)
+    print(plot_list[[i]])
+    dev.off()
 }
 ```
 
-
+#Otra OPCION 
 ```{r}
-mapa<-diagrama_stiff(iones=iones,ho=0.01,ve=0.01,shp1=sp1,shp2=sp2,shp3=sp3,shp4=sp4,shp5=sp5,shp6=sp6)
-```
-```{r}
-mapa+theme(legend.position = "none")+coord_cartesian(ylim=c(7.15, 8.3),xlim=c(-74,-73.25))
-```
-
-
-
-#EXPORT MAP
-```{r}
-pdf(file = "stiff.pdf",   # The directory you want to save the file in
-    width = 7, # The width of the plot in inches
-    height = 7) # The height of the plot in inches
-
-mapa+ theme(legend.position = "none")+coord_cartesian(ylim=c(7.15, 8.3),xlim=c(-74.25,-73.25))
-# Step 3: Run dev.off() to create the file!
+# Another option: create pdf where each page is a separate plot.
+pdf("d:/mavacau/Documents/Hojas/Hidroquimica/Valores/FILTRADO/Hidroquimica_anomalos.pdf")
+for (i in c(1:length(Parametros))) {
+    print(plot_list[[i]])
+}
 dev.off()
 ```
 
-#DIAGRAMA_INDIVIDUAL
+
+
+
 ```{r}
-diagrama_individual_stiff<-function(iones,ho,ve)
-  {
+# Another option: create pdf where each page is a separate plot.
+pdf("plots.pdf")
+for (i in 1:3) {
+    print(plot_list[[i]])
+}
+dev.off()
+Parametros[1]
+```
 
-        
-        
-        for(n in 1:nrow(iones))
-          {
-          
-          map1 <- ggplot()
-          iones_long<-as.numeric(iones$LONG_X[n])
-          iones_lat<-as.numeric(iones$LAT_Y[n])
-            position<- data.frame(
-                  xp = c(
-                        iones_long-iones$"Mg SinAtipicos"[n]*ho,
-                        iones_long+(iones$"SO4 SinAtipicos"[n]+iones$"NO3 SinAtipicos"[n])*ho,
-                        iones_long+iones$"HCO3 SinAtipicos"[n]*ho,
-                        iones_long+iones$"Cl SinAtipicos"[n]*ho,
-                        iones_long-(iones$"Na SinAtipicos"[n]+iones$"K SinAtipicos"[n])*ho,
-                        iones_long-iones$"Ca SinAtipicos"[n]*ho),
-                  yp = c(iones_lat-ve, 
-                        iones_lat-ve, 
-                        iones_lat, 
-                        iones_lat+ve, 
-                        iones_lat+ve, 
-                        iones_lat))
 
-           map1<-map1+geom_polygon(data = position ,
-                                    aes(x = xp, y = yp,alpha=0.8),
-                                    size=0.0001,
-                                    colour= "#018571",
-                                    fill= "white")
 
-        }
-        
+
+#Trash
+```{r}
+data.frame(table(HQ[HQ$MASCARA_PARAMETRO=="BICARBONATO",]$SinAtipicos))
+```
+
+#LIMITES
+```{r}
+PARAMETRO_NAME <- c("MAGNESIO","CALCIO","SODIO","POTASIO","BICARBONATO","CLORURO","SULFATO","NITRATO","NITRITO","HIERRO","CONDUCTIVIDAD ELECTRICA","PH","TEMPERATURA","SOLIDOS DISUELTOS TOTALES")
+
+#La identificiación de los límites es el resultado del analsis de diagrama de cajas (Donoban Rojas e Iris Juliana Barreto)
+#lim_inferior <- c(0,0.062,0,0.1,0,0,0.01,0.007,0.003,0.01,1,3.7,16,0)
+#lim_superior <- c(26.3,113.547,84.37,25.6,298,84.37,74.4,29.9,0.3,15.6,4000,10.59,41.3,1568)
+#los limites son ajustados a los resultados obtenidos en campo 1
+
+lim_inferior <- c(0,0.062,0,0.1,0,0,0.01,0.007,0.003,0.01,1,3.7,16,0)
+lim_superior <- c(46,114,252,26,501,145,561,55,1,16,4000,11,42,1570)
+
+limites_HQ <- data.frame(PARAMETRO_NAME,lim_inferior,lim_superior)
+limites_HQ
+
+```
+
+#ABS Y FILTRADO POR LIMITES
+```{r}
+HQ$SinAtipicos <- abs(HQ$SinAtipicos)
+
+HQ[,"limites_check"] <- 0
+for (x in 1:nrow(HQ)){
+  #print(paste(x,"-",HQ[x,"SinAtipicos"],"-",HQ[x,"MASCARA_PARAMETRO"]))
+
+  if((HQ[x,"SinAtipicos"]>=limites_HQ[limites_HQ$PARAMETRO_NAME %in% HQ[x,"MASCARA_PARAMETRO"],"lim_inferior"])&
+     (HQ[x,"SinAtipicos"]<=limites_HQ[limites_HQ$PARAMETRO_NAME %in% HQ[x,"MASCARA_PARAMETRO"],"lim_superior"])){
+    HQ[x,"limites_check"] <- 1
   }
+  
+}
+
 ```
-
-
+#RESCRIBIR HQ SIN ANOMALO
 ```{r}
-mapa<-diagrama_stiff(iones=iones,ho=0.01,ve=0.01,shp1=sp1,shp2=sp2,shp3=sp3,shp4=sp4,shp5=sp5,shp6=sp6)
+HQ <- HQ[HQ$limites_check==1,]
 ```
-
-
-
