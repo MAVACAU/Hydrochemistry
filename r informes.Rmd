@@ -1,0 +1,96 @@
+---
+title: "informes r"
+author: "MEGIA"
+date: "October 26, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library("xlsx")
+library("openxlsx")
+```
+
+```{r}
+data <- data.frame(lapply(normativa, function(x) {gsub("TRUE", "✓", x)}))
+data <- data.frame(lapply(data, function(x) {gsub("FALSE", "NO", x)}))
+
+```
+
+
+
+#Extraer nombres unicos de las muestras
+```{r}
+lista_muestras<-unique(data$ID_MUESTRA)
+```
+
+```{r}
+# create a new workbook for outputs
+# possible values for type are : "xls" and "xlsx"
+archivo_excel<-createWorkbook()
+# Create a new sheet in the workbook
+
+```
+```{r}
+for  (i in  lista_muestras){
+  
+  addWorksheet(archivo_excel,  i)
+  setColWidths(archivo_excel, i, cols = c(1,2,3:30), widths = rep(c(50, 8,5), times = c(1,1,27)))
+  writeData(archivo_excel,i,xy=c(1,1),x=paste("Muestra:",i))
+
+  writeData(archivo_excel,i,xy=c(1,2),x=matrix(c("", "",                                                    "Dec 1076 2015 2.2.3.3.9.3 consumo humano domestico Solo Tratamiento convencional","", 
+        "Dec 1076 2015 2.2.3.3.9.4 consumo humano domestico Solo desinfección","",
+        "Dec 1076 2015 2.2.3.3.9.5 uso agrícola","",
+        "Dec 1076 2015 2.2.3.3.9.6 uso pecuario","",
+        "Dec 1076 2015 2.2.3.3.9.7 uso recreativo contacto primario","",
+        "Dec 1076 2015 2.2.3.3.9.8 uso recreativo contacto secundario","",
+        "Dec 1076 2015 2.2.3.3.9.10 uso preservación flora fauna Agua fría dulce","",
+        "Dec 1076 2015 2.2.3.3.9.10 uso preservación flora fauna Agua cálida dulce","",
+        "Dec 1076 2015 2.2.3.3.9.10 uso preservación flora fauna Agua marina estuarina","",
+        "Res 1207 2014 6.1 uso agrícola","",
+        "Res 1207 2014 6.1 Zonas verdes (parques y campos deportivos)","",
+        "Res 1207 2014 6.1 Intercambio de calor en torres de enfriamiento y calderas","",
+        "Res 1207 2014 6.1 Limpieza y riego de vias para control de material particulado",""
+        ),nrow = 1),colNames = FALSE)
+    mergeCells(archivo_excel, i, cols = (3:4), rows = 2)
+    mergeCells(archivo_excel, i, cols = (5:6), rows = 2)
+    mergeCells(archivo_excel, i, cols = (7:8), rows = 2)
+    mergeCells(archivo_excel, i, cols = (9:10), rows = 2)
+    mergeCells(archivo_excel, i, cols = (11:12), rows = 2)
+    mergeCells(archivo_excel, i, cols = (13:14), rows = 2)
+    mergeCells(archivo_excel, i, cols = (15:16), rows = 2)
+    mergeCells(archivo_excel, i, cols = (17:18), rows = 2)
+    mergeCells(archivo_excel, i, cols = (19:20), rows = 2)
+    mergeCells(archivo_excel, i, cols = (21:22), rows = 2)
+    mergeCells(archivo_excel, i, cols = (23:24), rows = 2)
+    mergeCells(archivo_excel, i, cols = (25:26), rows = 2)
+    mergeCells(archivo_excel, i, cols = (27:28), rows = 2)
+    mergeCells(archivo_excel, i, cols = (29:30), rows = 2)
+    mergeCells(archivo_excel, i, cols = (31:32), rows = 2)
+  
+  
+ writeData(archivo_excel,i,xy=c(1,3),x=matrix(c("PARAMETRO", "VALOR", "min", "max", "min", "max", "min", "max", "min", "max", "min", "max", "min", "max", "min", "max", "min", "max", "min","max", "min","max", "min","max", "min","max", "min","max"),nrow = 1),colNames = FALSE)
+ datos_filtro<-data[data$ID_MUESTRA==i,c("MASCARA_PARAMETRO","SinAtipicos","min3","max3","min4","max4","min5","max5","min6","max6","min7","max7","min8","max8","Min10f","Max10f" , "min10c",  "max10c" ,  "min10m" ,"max10m","min_1207_agricola","max_1207_agricola","min_1207_zonas_verdes","max_1207_zonas_verdes","min_1207_In_calor","max_1207_In_calor","min_1207_ind_limpieza","max_1207_ind_limpieza")]
+ datos_filtro<-datos_filtro[order(datos_filtro$"MASCARA_PARAMETRO"),]
+  writeData(archivo_excel,i,xy=c(1,4),x=datos_filtro,colNames = FALSE,rowNames = FALSE)
+
+   }
+```
+
+
+
+
+
+
+
+```{r}
+saveWorkbook(archivo_excel,file= "ejemplo.xlsx",overwrite=TRUE)
+```
+
+
+
+
+
+
