@@ -7,11 +7,19 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+#NOTAS DE CORRECIONES A REALIZAR
+-Incluir normativa de verificacion dentro del propio codigo  dentro de un data frame, ya que la dependencia a archivos externos puede causar problemas de  calculo, y de actualizacion, o generar un paquete para la definicion de normativas a evaluar.
+
+-El data frame Normativa nose inicializa  automaticamente, existen problemas al correrlo por lo tanto hay que verificar la inicializacion, (el data frame Normativa acumula  todas la revisiones de todos los registro  evaluados).
+
+-Empaquetar todos los procedimientos  en funciones  acordes para  mantener el control   del codigo.
+
 #FILE
 ```{r}
 library(readxl) 
 #library("xlsx")
-datos<-MEGIA_query_v3_
+datos<-archivo_base
 #datos <- read_excel("CORRELACION_v4.xlsx")
 ```
 #cargar tabla de las resoliciones con los límies permisibles 2020
@@ -43,10 +51,12 @@ for (i in parametros2)
 
 ```
 #Verficicacion
+
+
 ```{r}
 #Inicializar data frame Normativa
-Normativa<-cbind(datos[1,c("ID_MUESTRA","MASCARA_PARAMETRO","SinAtipicos")],vermin,vermax)
 
+Normativa<-cbind(datos[1,c("ID_MUESTRA","MASCARA_PARAMETRO","SinAtipicos")],vermin,vermax)
 #llenado de data frame
 for (i in c(2:nrow(datos)))
   {
