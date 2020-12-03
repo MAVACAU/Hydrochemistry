@@ -30,8 +30,13 @@ require(ggplot2)
 # "numeric", "numeric", "numeric", 
 # "numeric", "text", "text", "text", 
 # "text")) 
-iones <-(cluster)
+iones <-(MEQ_TODO_MAY_v8_v2)
 ```
+
+```{r}
+iones[1,"color"])
+```
+
 
 ```{r depurado data}
 
@@ -126,6 +131,77 @@ diagrama_stiff <- function(iones,ho=0.01, ve=0.01, shp2, shp3, shp4,
 										yend = y2), size=border_thick, color = color_border, data = lineas)+ theme(legend.position = "none") 
 							
 								 return(map1)
+}
+
+
+diagrama_stiff_colores<- function(iones,ho=0.01, ve=0.01, shp2, shp3, shp4,
+													 shp6, color_relleno,color_border = "black",
+													 border_thick=0.0001,longx,laty,Mg,SO4,NO3,HCO3,Cl,Na,K,Ca)
+							 { 
+								 map1 <- ggplot() + 
+								 geom_polygon(data = shp4, aes(x = long, y = lat, group = group), colour = "#a1bad8", fill = "#a1bad8") + 
+								 geom_path(data = shp3, aes(x = long, y = lat, group = group), colour = "#a1bad8", fill = NA) + 
+								 geom_polygon(data = shp2, aes(x = long, y = lat, group = group), colour = "#cccccc", fill = NA) + 
+								 geom_polygon(data = shp6, aes(x = long, y = lat, group = group), colour = "#666666", fill = NA) + 
+								 theme_bw() 
+								 
+								 #crear modulo para  rellenar  datos faltantes
+								 
+								 longx<-iones[,longx]
+								 laty<-iones[,laty]
+								 Mg<-iones[,Mg]
+								 SO4<-iones[,SO4]
+								 NO3<-iones[,NO3]
+								 HCO3<-iones[,HCO3]
+								 Cl<-iones[,Cl]
+								 Na<-iones[,Na]
+								 K<-iones[,K]
+								 Ca<-iones[,Ca]
+								 COLOR<-iones[,color_relleno]
+
+								 for(n in c(1:nrow(iones))) 
+								 {
+									 iones_long <- as.numeric(longx[n,])
+									 iones_lat <- as.numeric(laty[n,])
+									 mg<- as.numeric(Mg[n,])
+									 so4<- as.numeric(SO4[n,])
+									 no3<- as.numeric(NO3[n,])
+									 hco3<- as.numeric(HCO3[n,])
+									 cl<- as.numeric(Cl[n,])
+									 na<- as.numeric(Na[n,])
+									 k<- as.numeric(K[n,])
+									 ca<- as.numeric(Ca[n,])
+									 color<-as.character(COLOR[n,])
+									 
+								
+									 position <- data.frame(
+										xp = c(
+										 iones_long - mg* ho, 
+										 iones_long + (so4 +no3)* ho, 
+										 iones_long + hco3* ho, 
+										 iones_long + cl* ho, 
+										 iones_long -(na + k)* ho, 
+										 iones_long - ca* ho), 
+										yp = c(iones_lat - ve, 
+										 iones_lat - ve, 
+										 iones_lat, 
+										 iones_lat + ve, 
+										 iones_lat + ve, 
+										 iones_lat)) 
+									 
+									 map1 <- map1 + geom_polygon(data = position, 
+											aes(x = xp, y = yp, alpha=0.8), 
+											size=border_thick, 
+											colour= color_border, 
+											fill= color)
+
+								 }
+								 lineas <- data.frame(x1 = as.numeric(unlist(longx)), x2 = as.numeric(unlist(longx)), 
+										y1 = as.numeric(unlist(laty))- ve, y2 = as.numeric(unlist(laty)) + ve)
+								 map1 <- map1 + geom_segment(aes(x = x1, y = y1, xend = x2, 
+										yend = y2), size=border_thick, color = color_border, data = lineas)+ theme(legend.position = "none") 
+							
+								 return(map1)
 							}
 
 individual_stiff <- function(iones, color_relleno="white",color_border = "black",
@@ -188,13 +264,39 @@ individual_stiff <- function(iones, color_relleno="white",color_border = "black"
 
 
 
-
+```{r mapa exportado}
+mapa <- diagrama_stiff( iones=iones[iones$Cluster=="C3",],shp2=sp2, shp3=sp3, shp4=sp4, shp6=sp6 ,color_relleno="green",
+											 longx="LONG_X",laty="LAT_Y",Mg="Mg SinAtipicos",SO4="SO4 SinAtipicos",NO3="NO3 SinAtipicos",HCO3="HCO3 SinAtipicos",Cl="Cl SinAtipicos",Na="Na SinAtipicos",K="K SinAtipicos",Ca="Ca SinAtipicos")
+```
+```{r mapa exportado}
+mapa_color <- diagrama_stiff_colores( iones=iones,shp2=sp2, shp3=sp3, shp4=sp4, shp6=sp6 ,color_relleno="color",
+											 longx="LONG_X",laty="LAT_Y",Mg="Mg SinAtipicos",SO4="SO4 SinAtipicos",NO3="NO3 SinAtipicos",HCO3="HCO3 SinAtipicos",Cl="Cl SinAtipicos",Na="Na SinAtipicos",K="K SinAtipicos",Ca="Ca SinAtipicos")
+```
+```{r}
+mapa_color
+```
 
 
 
 ```{r mapa exportado}
 mapa <- diagrama_stiff( iones=iones[iones$Cluster=="C3",],shp2=sp2, shp3=sp3, shp4=sp4, shp6=sp6 ,color_relleno="green",
 											 longx="LONG_X",laty="LAT_Y",Mg="Mg SinAtipicos",SO4="SO4 SinAtipicos",NO3="NO3 SinAtipicos",HCO3="HCO3 SinAtipicos",Cl="Cl SinAtipicos",Na="Na SinAtipicos",K="K SinAtipicos",Ca="Ca SinAtipicos")
+```
+
+```{r}
+pdf(file = "mapa_color.pdf", # The directory you want to save the file in
+ width = 7, # The width of the plot in inches
+ height = 7)# The height of the plot in inches
+mapa_color+ theme(legend.position = "none") + coord_cartesian(ylim=c(7.15, 8.3), xlim=c(- 74.25, - 73.25)) 
+dev.off() # Step 3: Run dev.off() to create the file!
+```
+
+```{r}
+pdf(file = "mapa_cluster.pdf", # The directory you want to save the file in
+ width = 7, # The width of the plot in inches
+ height = 7)# The height of the plot in inches
+mapa+ theme(legend.position = "none") + coord_cartesian(ylim=c(7.15, 8.3), xlim=c(- 74.25, - 73.25)) 
+dev.off() # Step 3: Run dev.off() to create the file!
 ```
 
 
