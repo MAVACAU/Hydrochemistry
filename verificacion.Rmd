@@ -90,3 +90,4 @@ datos_informe <- datos_informe[datos_informe$min3!="NA",]
 ```{r}
 write.csv(datos_informe,"./Verificacion/Megia_query_v3_normativa.csv", row.names = TRUE)
 ```
+
