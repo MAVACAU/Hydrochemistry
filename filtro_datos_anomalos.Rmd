@@ -12,30 +12,37 @@ library(data.table)
 library(sp)
 library(rgdal)
 require(ggplot2)
+library(readr)
 #library(jpeg)
 #library(magick)
 ```
+```{r}
+
+limites_HQ <- read_csv("G:/Documentos/Monica/git_hydrochemistry/limites_parametros.csv")
+
+```
+
 
 #LIMITES
 ```{r}
-PARAMETRO_NAME <- c("MAGNESIO","CALCIO","SODIO","POTASIO","BICARBONATO","CLORURO","SULFATO","NITRATO","NITRITO","HIERRO","CONDUCTIVIDAD ELECTRICA","PH","TEMPERATURA","SOLIDOS DISUELTOS TOTALES")
+#PARAMETRO_NAME <- c("MAGNESIO","CALCIO","SODIO","POTASIO","BICARBONATO","CLORURO","SULFATO","NITRATO","NITRITO","HIERRO","CONDUCTIVIDAD ELECTRICA","PH","TEMPERATURA","SOLIDOS DISUELTOS TOTALES")
 
 #La identificiación de los límites es el resultado del analsis de diagrama de cajas (Donoban Rojas e Iris Juliana Barreto)
 #lim_inferior <- c(0,0.062,0,0.1,0,0,0.01,0.007,0.003,0.01,1,3.7,16,0)
 #lim_superior <- c(26.3,113.547,84.37,25.6,298,84.37,74.4,29.9,0.3,15.6,4000,10.59,41.3,1568)
 #los limites son ajustados a los resultados obtenidos en campo 1
 
-lim_inferior <- c(0,0.062,0,0.1,0,0,0.01,0.007,0.003,0.01,1,3.7,16,0)
-lim_superior <- c(46,114,252,26,501,145,561,55,1,16,4000,11,42,1570)
+#lim_inferior <- c(0,0.062,0,0.1,0,0,0.01,0.007,0.003,0.01,1,3.7,16,0)
+#lim_superior <- c(46,114,252,26,501,145,561,55,1,16,4000,11,42,1570)
 
-limites_HQ <- data.frame(PARAMETRO_NAME,lim_inferior,lim_superior)
+#limites_HQ <- data.frame(PARAMETRO_NAME,lim_inferior,lim_superior)
 limites_HQ
 
 ```
 
 #NAME
 ```{r}
-HQ <- (CORRELACION_NORTE_SUR_Vol_VI)
+HQ <- (mojana_25_nov)
 ```
 #ABS Y FILTRADO POR LIMITES
 ```{r}
